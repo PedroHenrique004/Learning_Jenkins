@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        APP_NAME = 'learning-jenkins'
+        NODE_ENV = "${params.ENVIRONMENT == 'production' ? 'production' : 'development'}"
+        BUILD_TAG = "${APP_NAME}-${BUILD_NUMBER}"
+    }
+
     parameters {
         string(name: 'BRANCH_TO_BUILD', defaultValue: 'main', description: 'Branch a ser buildada')
 
@@ -24,6 +30,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
+                echo "Buildando ${env.BUILD_TAG} a partir do commit ${env.GIT_COMMIT}"
                 git branch: "${params.BRANCH_TO_BUILD}", url: 'https://github.com/PedroHenrique004/Learning_Jenkins'
             }
         }
