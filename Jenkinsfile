@@ -2,27 +2,21 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
+        stage('Clean up') {
             steps {
-                checkout scm
+                deleteDir()
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Checkout'){
+            steps {
+                git branch: 'main', url: 'https://github.com/PedroHenrique004/Learning_Jenkins'
+            }
+        }
+
+        stage ('Build') {
             steps {
                 sh 'npm ci'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                sh 'npm run test:ci'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'npm run build'
             }
         }
     }
