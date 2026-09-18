@@ -49,4 +49,18 @@ describe('LoginForm', () => {
 
     expect(await screen.findByText(/login realizado com sucesso/i)).toBeInTheDocument();
   });
+
+  it('alterna a visibilidade da senha ao clicar em "Mostrar"/"Ocultar"', async () => {
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    const passwordInput = screen.getByLabelText(/senha/i);
+    expect(passwordInput).toHaveAttribute('type', 'password');
+
+    await user.click(screen.getByRole('button', { name: /mostrar/i }));
+    expect(passwordInput).toHaveAttribute('type', 'text');
+
+    await user.click(screen.getByRole('button', { name: /ocultar/i }));
+    expect(passwordInput).toHaveAttribute('type', 'password');
+  });
 });

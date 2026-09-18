@@ -34,6 +34,30 @@
   font-size: 1rem;
 }
 
+.password-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.password-input input {
+  flex: 1;
+}
+
+.toggle-password {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f3f3f3;
+  color: #333;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toggle-password:hover {
+  background-color: #e6e6e6;
+}
+
 .field-error {
   color: #c0392b;
   font-size: 0.8rem;
