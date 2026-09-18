@@ -1,52 +1,78 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import LoginForm from './LoginForm';
-
-function fillForm(email: string, password: string) {
-  const user = userEvent.setup();
-  render(<LoginForm />);
-
-  return {
-    user,
-    submit: async () => {
-      if (email) await user.type(screen.getByLabelText(/e-mail/i), email);
-      if (password) await user.type(screen.getByLabelText(/senha/i), password);
-      await user.click(screen.getByRole('button', { name: /entrar/i }));
-    },
-  };
+def nomeCompletoAmbiente(ambiente) {
+    if (ambiente == 'production') {
+        return "Produção"
+    } else {
+        return "Staging (ambiente de testes)"
+    }
 }
 
-describe('LoginForm', () => {
-  it('renderiza os campos de e-mail e senha e o botão de envio', () => {
-    render(<LoginForm />);
+def deployIniciadoEm = ""
 
-    expect(screen.getByLabelText(/e-mail/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/senha/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument();
-  });
+pipeline {
+    agent any
 
-  it('exibe erro de validação quando o e-mail é inválido', async () => {
-    const { submit } = fillForm('email-invalido', 'senha123');
-    await submit();
+    environment {
+        APP_NAME = 'learning-jenkins'
+        NODE_ENV = "${params.ENVIRONMENT == 'production' ? 'production' : 'development'}"
+        BUILD_TAG = "${APP_NAME}-${BUILD_NUMBER}"
+    }
 
-    expect(await screen.findByText(/informe um e-mail válido/i)).toBeInTheDocument();
-    expect(screen.queryByText(/login realizado com sucesso/i)).not.toBeInTheDocument();
-  });
+    parameters {
+        string(name: 'BRANCH_TO_BUILD', defaultValue: 'main', description: 'Branch a ser buildada')
 
-  it('exibe erro de validação quando a senha é muito curta', async () => {
-    const { submit } = fillForm('usuario@exemplo.com', '123');
-    await submit();
+        choice(
+            name: 'ENVIRONMENT', 
+            choices: ['staging', 'production'], 
+            description: 'Ambiente de destino'
+        )
 
-    expect(
-      await screen.findByText(/a senha deve ter pelo menos 6 caracteres/i),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/login realizado com sucesso/i)).not.toBeInTheDocument();
-  });
+        booleanParam(name: 'SKIP_TESTS', defaultValue: false, description: 'Pular os testes?')
+    }
 
-  it('exibe mensagem de sucesso quando e-mail e senha são válidos', async () => {
-    const { submit } = fillForm('usuario@exemplo.com', 'senha123');
-    await submit();
+    stages {
+        stage('Clean up') {
+            steps {
+                deleteDir()
+            }
+        }
 
-    expect(await screen.findByText(/login realizado com sucesso/i)).toBeInTheDocument();
-  });
-});
+        stage('Checkout') {
+            steps {
+                git branch: "${params.BRANCH_TO_BUILD}", url: 'https://github.com/PedroHenrique004/Learning_Jenkins'
+                echo "Buildando ${env.BUILD_TAG} a partir do commit ${env.GIT_COMMIT}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    echo "Ambiente selecionado: ${nomeCompletoAmbiente(params.ENVIRONMENT)}"
+                    deployIniciadoEm = new Date().format("dd/MM/yyyy HH:mm:ss")
+                }
+                sh '''
+                    echo "Instalando dependências..."
+                    npm ci
+                    echo "Dependências instaladas com sucesso"
+                '''
+            }
+        }
+
+        stage('Test') {
+            when {
+                expression { params.SKIP_TESTS == false }
+            }
+            steps {
+                sh 'npm run test:ci'
+            }
+        }
+
+        stage('Summary') {
+            steps {
+                script {
+                    echo "Build iniciado em: ${deployIniciadoEm}"
+                    echo "Resumo final: ${nomeCompletoAmbiente(params.ENVIRONMENT)}, branch ${params.BRANCH_TO_BUILD}"
+                }
+            }
+        }
+    }
+}
